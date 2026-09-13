@@ -33,6 +33,7 @@ class IncomeEntry(BaseModel):
     amount: Decimal
     payment_method: Literal["CASH", "TRANSFER", "DEBT"]
     customer_id: Optional[int] = None  # required when payment_method == DEBT
+    income_category: Optional[Literal["ALCOHOL", "MARKET", "GROCERY"]] = None
     created_by: Optional[str] = None
 
 
@@ -74,6 +75,7 @@ class TransactionOut(BaseModel):
     amount: Decimal
     payment_method: Optional[str] = None
     customer_id: Optional[int] = None
+    income_category: Optional[str] = None
     home_use_tag: Optional[str] = None
     expense_category: Optional[str] = None
     payment_source: Optional[str] = None
@@ -135,3 +137,37 @@ class DailySummaryOut(BaseModel):
     total_expense: Decimal
     total_home_use_value: Decimal
     net_cash_in_drawer_change: Decimal
+
+
+# ---------- Settings ----------
+class SettingsOut(BaseModel):
+    drawer_float_amount: Decimal
+    market_daily_budget: Optional[Decimal] = None
+
+
+class SettingsUpdate(BaseModel):
+    drawer_float_amount: Optional[Decimal] = None
+    market_daily_budget: Optional[Decimal] = None
+
+
+# ---------- Drawer count ----------
+class DrawerCountCreate(BaseModel):
+    count_date: date
+    counted_amount: Decimal
+
+
+# ---------- Home summary ----------
+DrawerStatus = Literal["MATCH", "MISMATCH", "NOT_COUNTED_YET"]
+BudgetStatus = Literal["OK", "OVER", "NO_BUDGET_SET"]
+
+
+class HomeSummaryOut(BaseModel):
+    date: date
+    cash_income_today: Decimal
+    expected_drawer_cash: Decimal
+    actual_drawer_count: Optional[Decimal] = None
+    drawer_status: DrawerStatus
+    market_expense_today: Decimal
+    market_daily_budget: Optional[Decimal] = None
+    market_status: BudgetStatus
+    month_profit_so_far: Decimal

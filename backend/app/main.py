@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
 from . import models  # noqa: F401  (ensures models are registered before create_all)
-from .routers import transactions, customers, family_credits, dashboard
+from .routers import transactions, customers, family_credits, dashboard, settings
 
 app = FastAPI(title="ระบบจัดการกระแสเงินสดและสต๊อกกงสี")
 
@@ -24,6 +24,7 @@ app.include_router(transactions.router)
 app.include_router(customers.router)
 app.include_router(family_credits.router)
 app.include_router(dashboard.router)
+app.include_router(settings.router)
 
 
 @app.on_event("startup")

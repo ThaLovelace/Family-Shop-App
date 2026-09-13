@@ -35,6 +35,7 @@ class Transaction(Base):
     # INCOME only
     payment_method = Column(String(20))  # CASH | TRANSFER | DEBT
     customer_id = Column(Integer, ForeignKey("customers.customer_id"), index=True)
+    income_category = Column(String(20))  # ALCOHOL | MARKET | GROCERY
 
     # HOME_USE only
     home_use_tag = Column(String(20))  # FOR_SALE | NEAR_EXPIRED | GRANDMA
@@ -68,6 +69,26 @@ class DebtPayment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     customer = relationship("Customer", back_populates="debt_payments")
+
+
+class ShopSettings(Base):
+    """Singleton row (settings_id always 1) holding shop-wide config."""
+    __tablename__ = "shop_settings"
+
+    settings_id = Column(Integer, primary_key=True, default=1)
+    drawer_float_amount = Column(Numeric(10, 2), nullable=False, default=0)
+    market_daily_budget = Column(Numeric(10, 2))
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class DrawerCount(Base):
+    """Actual counted cash in the drawer at end of day, for comparing against expected."""
+    __tablename__ = "drawer_counts"
+
+    count_id = Column(Integer, primary_key=True, index=True)
+    count_date = Column(Date, nullable=False, unique=True, index=True)
+    counted_amount = Column(Numeric(10, 2), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class FamilyCredit(Base):

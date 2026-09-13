@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/", label: "รับเงิน" },
+  { href: "/", label: "หน้าหลัก" },
+  { href: "/income", label: "รับเงิน" },
   { href: "/expense", label: "จ่ายเงิน" },
   { href: "/debts", label: "แปะโป้ง" },
+  { href: "/history", label: "ประวัติ" },
 ];
 
 export default function BottomNav() {
@@ -21,7 +23,7 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 py-4 text-center text-lg font-semibold transition-colors ${
+              className={`flex-1 py-3 text-center text-base font-semibold transition-colors ${
                 active ? "text-ink border-t-4 border-cash -mt-[4px]" : "text-ink/50"
               }`}
             >

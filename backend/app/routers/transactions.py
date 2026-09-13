@@ -21,6 +21,7 @@ def create_income(batch: schemas.IncomeBatchCreate, db: Session = Depends(get_db
             amount=entry.amount,
             payment_method=entry.payment_method,
             customer_id=entry.customer_id if entry.payment_method == "DEBT" else None,
+            income_category=entry.income_category,
             created_by=entry.created_by,
         )
         db.add(row)

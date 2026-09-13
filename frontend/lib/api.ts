@@ -23,6 +23,14 @@ export type Customer = {
 
 export type CustomerDebt = Customer & { outstanding_debt: string };
 
+export type IncomeCategory = "ALCOHOL" | "MARKET" | "GROCERY";
+
+export const INCOME_CATEGORIES: { value: IncomeCategory; label: string; color: string }[] = [
+  { value: "ALCOHOL", label: "เหล้า", color: "bg-alcohol" },
+  { value: "MARKET", label: "ตลาด", color: "bg-market" },
+  { value: "GROCERY", label: "ของชำ", color: "bg-grocery" },
+];
+
 export type Transaction = {
   transaction_id: number;
   transaction_date: string;
@@ -31,6 +39,7 @@ export type Transaction = {
   amount: string;
   payment_method: string | null;
   customer_id: number | null;
+  income_category: IncomeCategory | null;
   home_use_tag: string | null;
   expense_category: string | null;
   payment_source: string | null;
@@ -38,17 +47,52 @@ export type Transaction = {
   created_at: string;
 };
 
+export type DailySummary = {
+  date: string;
+  total_cash_income: string;
+  total_transfer_income: string;
+  total_debt_income: string;
+  total_expense: string;
+  total_home_use_value: string;
+  net_cash_in_drawer_change: string;
+};
+
+export type DrawerStatus = "MATCH" | "MISMATCH" | "NOT_COUNTED_YET";
+export type BudgetStatus = "OK" | "OVER" | "NO_BUDGET_SET";
+
+export type HomeSummary = {
+  date: string;
+  cash_income_today: string;
+  expected_drawer_cash: string;
+  actual_drawer_count: string | null;
+  drawer_status: DrawerStatus;
+  market_expense_today: string;
+  market_daily_budget: string | null;
+  market_status: BudgetStatus;
+  month_profit_so_far: string;
+};
+
+export type Settings = {
+  drawer_float_amount: string;
+  market_daily_budget: string | null;
+};
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 export const api = {
+  today,
+
   getCustomers: () => request<Customer[]>("/api/customers"),
 
-  createIncome: (entries: {
-    amount: number;
-    payment_method: "CASH" | "TRANSFER" | "DEBT";
-    customer_id?: number;
-    item_description?: string;
-  }[]) =>
+  createIncome: (
+    entries: {
+      amount: number;
+      payment_method: "CASH" | "TRANSFER" | "DEBT";
+      customer_id?: number;
+      income_category?: IncomeCategory;
+      item_description?: string;
+    }[]
+  ) =>
     request<Transaction[]>("/api/transactions/income", {
       method: "POST",
       body: JSON.stringify({
@@ -83,6 +127,8 @@ export const api = {
 
   listTodayTransactions: () => request<Transaction[]>(`/api/transactions?date=${today()}`),
 
+  listTransactionsByDate: (date: string) => request<Transaction[]>(`/api/transactions?date=${date}`),
+
   voidTransaction: (id: number, reason: string) =>
     request<Transaction>(`/api/transactions/${id}/void`, {
       method: "PATCH",
@@ -95,5 +141,23 @@ export const api = {
     request(`/api/customers/${id}/payments`, {
       method: "POST",
       body: JSON.stringify({ payment_date: today(), amount, payment_method }),
+    }),
+
+  getDailySummary: (date: string) => request<DailySummary>(`/api/dashboard/daily-summary?date=${date}`),
+
+  getHomeSummary: (date: string) => request<HomeSummary>(`/api/dashboard/home-summary?date=${date}`),
+
+  recordDrawerCount: (date: string, counted_amount: number) =>
+    request<HomeSummary>("/api/dashboard/drawer-count", {
+      method: "POST",
+      body: JSON.stringify({ count_date: date, counted_amount }),
+    }),
+
+  getSettings: () => request<Settings>("/api/settings"),
+
+  updateSettings: (body: { drawer_float_amount?: number; market_daily_budget?: number }) =>
+    request<Settings>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(body),
     }),
 };

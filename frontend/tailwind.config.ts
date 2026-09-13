@@ -11,6 +11,9 @@ const config: Config = {
         transfer: "#2C4770",
         debt: "#D9A441",
         homeuse: "#B8543D",
+        alcohol: "#6B2545",
+        market: "#3D7A5C",
+        grocery: "#6B5B95",
         line: "#E0D6C2",
       },
       fontFamily: {
