@@ -3,151 +3,116 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, HomeSummary } from "../lib/api";
+import BigButton from "../lib/ui/BigButton";
+
+const THAI_MONTHS = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+
+function formatThaiDate(d: Date) {
+  const day = d.getDate();
+  const month = THAI_MONTHS[d.getMonth()];
+  const buddhistYear = d.getFullYear() + 543;
+  return `วันที่ ${day} ${month} ${buddhistYear}`;
+}
+
+function greeting(d: Date) {
+  const hour = d.getHours();
+  if (hour < 11) return "สวัสดีตอนเช้าค่ะ";
+  if (hour < 16) return "สวัสดีตอนบ่ายค่ะ";
+  return "สวัสดีตอนเย็นค่ะ";
+}
+
+type LoadState = "loading" | "ready" | "error";
 
 export default function HomePage() {
   const [summary, setSummary] = useState<HomeSummary | null>(null);
-  const [countInput, setCountInput] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [state, setState] = useState<LoadState>("loading");
 
   useEffect(() => {
     load();
   }, []);
 
   function load() {
-    api.getHomeSummary(api.today()).then(setSummary).catch(() => setSummary(null));
+    setState("loading");
+    api
+      .getHomeSummary(api.today())
+      .then((s) => {
+        setSummary(s);
+        setState("ready");
+      })
+      .catch(() => setState("error"));
   }
 
-  async function submitCount() {
-    const value = Number(countInput);
-    if (!value) return;
-    setSaving(true);
-    try {
-      const updated = await api.recordDrawerCount(api.today(), value);
-      setSummary(updated);
-      setCountInput("");
-    } finally {
-      setSaving(false);
-    }
+  if (state === "loading") {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 text-center">
+        <span className="text-6xl">📒</span>
+        <p className="text-xl font-bold text-ink">กำลังกางสมุดบัญชี...</p>
+        <p className="text-lg text-ink/70">ป้ารอสัก 1 นาทีนะจ๊ะ</p>
+      </div>
+    );
   }
 
-  const drawerIcon =
-    summary?.drawer_status === "MATCH" ? "✅" : summary?.drawer_status === "MISMATCH" ? "⚠️" : "🕘";
-  const drawerText =
-    summary?.drawer_status === "MATCH"
-      ? "เงินทอนตรง"
-      : summary?.drawer_status === "MISMATCH"
-      ? "เงินทอนไม่ตรง ลองนับใหม่อีกที"
-      : "ยังไม่ได้นับเงินทอนวันนี้";
+  if (state === "error") {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 rounded-2xl bg-red-50 p-6 text-center">
+        <span className="text-6xl">📡</span>
+        <p className="text-xl font-bold text-ink">เน็ตหลุดจ้า ยังไม่ได้จดรายการเมื่อกี้</p>
+        <BigButton variant="checkout" size="secondary" onClick={load} className="mt-2">
+          ลองบันทึกอีกครั้ง
+        </BigButton>
+      </div>
+    );
+  }
 
-  const budgetBarColor =
-    summary?.market_status === "OVER"
-      ? "bg-red-500"
-      : summary?.market_status === "OK"
-      ? "bg-market"
-      : "bg-line";
-
-  const budgetPercent =
-    summary?.market_daily_budget && Number(summary.market_daily_budget) > 0
-      ? Math.min(100, (Number(summary.market_expense_today) / Number(summary.market_daily_budget)) * 100)
-      : 0;
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">ภาพรวมวันนี้</h1>
-          <p className="text-ink/60">{summary?.date}</p>
-        </div>
-        <Link href="/settings" className="text-2xl" aria-label="ตั้งค่า">
-          ⚙️
-        </Link>
+      <header>
+        <h1 className="text-2xl font-bold">{greeting(now)}</h1>
+        <p className="text-ink/60">{formatThaiDate(now)}</p>
       </header>
 
-      {/* Drawer check */}
-      <div className="rounded-2xl bg-white/70 p-5">
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">{drawerIcon}</span>
-          <div>
-            <p className="text-lg font-bold">{drawerText}</p>
-            {summary && (
-              <p className="text-sm text-ink/60">
-                ควรมี ฿{summary.expected_drawer_cash}
-                {summary.actual_drawer_count ? ` · นับได้ ฿${summary.actual_drawer_count}` : ""}
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <input
-            inputMode="decimal"
-            value={countInput}
-            onChange={(e) => setCountInput(e.target.value)}
-            placeholder="นับเงินทอนได้เท่าไหร่"
-            className="h-14 flex-1 rounded-xl border border-line bg-white px-4 text-xl tabular-nums"
-          />
-          <button
-            onClick={submitCount}
-            disabled={!countInput || saving}
-            className="h-14 rounded-xl bg-cash px-5 text-lg font-bold text-white disabled:opacity-40"
-          >
-            บันทึก
-          </button>
-        </div>
+      {/* Read-only sales card */}
+      <div className="rounded-2xl bg-white/70 p-6 text-center">
+        <p className="text-lg font-semibold text-ink/70">ยอดขายวันนี้</p>
+        <p className="tabular-nums text-5xl font-extrabold text-revenue">
+          ฿{summary?.cash_income_today ?? "0"}
+        </p>
+        <p className="mt-1 text-sm text-ink/50">นับเฉพาะเงินสด — ยอดรวมทั้งหมดดูได้ที่หน้าสรุป</p>
       </div>
 
-      {/* Market budget */}
-      <div className="rounded-2xl bg-white/70 p-5">
-        <p className="text-lg font-bold">งบซื้อของตลาดวันนี้</p>
-        {summary?.market_status === "NO_BUDGET_SET" ? (
-          <p className="mt-2 text-ink/60">
-            ยังไม่ได้ตั้งงบ —{" "}
-            <Link href="/settings" className="underline">
-              ตั้งค่าที่นี่
-            </Link>
-          </p>
-        ) : (
-          <>
-            <div className="mt-3 h-4 w-full overflow-hidden rounded-full bg-line">
-              <div className={`h-full ${budgetBarColor}`} style={{ width: `${budgetPercent}%` }} />
-            </div>
-            <p className="mt-2 text-sm text-ink/60">
-              ใช้ไป ฿{summary?.market_expense_today} จากงบ ฿{summary?.market_daily_budget}
-            </p>
-          </>
-        )}
+      {/* 3 primary actions, stacked full-width */}
+      <div className="flex flex-col gap-3">
+        <BigButton href="/income" variant="revenue">
+          + รับเงิน
+        </BigButton>
+        <BigButton href="/expense" variant="expense">
+          - จ่ายเงิน
+        </BigButton>
+        <BigButton href="/debts" variant="debtAction">
+          ลูกค้าแปะโป้ง
+        </BigButton>
       </div>
 
-      {/* Month profit */}
-      <div className="rounded-2xl bg-white/70 p-5 text-center">
-        <p className="text-lg font-bold">กำไรเดือนนี้ (ถึงวันนี้)</p>
-        <p className="tabular-nums text-4xl font-bold text-cash">฿{summary?.month_profit_so_far ?? "-"}</p>
-      </div>
+      {/* Secondary action */}
+      <BigButton href="/checkout" variant="checkout" size="secondary">
+        ปิดยอดวันนี้
+      </BigButton>
 
-      {/* Shortcuts */}
-      <div className="grid grid-cols-3 gap-3">
-        <Link
-          href="/income"
-          className="flex h-20 items-center justify-center rounded-xl bg-cash text-lg font-bold text-white"
-        >
-          รับเงิน
+      {/* Small corner text links */}
+      <div className="flex justify-center gap-4 text-ink/60">
+        <Link href="/summary" className="underline">
+          ดูสรุป
         </Link>
-        <Link
-          href="/expense"
-          className="flex h-20 items-center justify-center rounded-xl bg-transfer text-lg font-bold text-white"
-        >
-          จ่ายเงิน
-        </Link>
-        <Link
-          href="/debts"
-          className="flex h-20 items-center justify-center rounded-xl bg-debt text-lg font-bold text-white"
-        >
-          แปะโป้ง
+        <span>|</span>
+        <Link href="/settings" className="underline">
+          ตั้งค่า
         </Link>
       </div>
-
-      <Link href="/history" className="text-center text-ink/70 underline">
-        ดูรายละเอียด / ประวัติย้อนหลัง
-      </Link>
     </div>
   );
 }

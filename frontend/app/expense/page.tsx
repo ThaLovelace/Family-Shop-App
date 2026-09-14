@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "../../lib/api";
+import BackButton from "../../lib/ui/BackButton";
 
 type Category = "FRESH_MARKET" | "BEVERAGE" | "GROCERY_OTHER";
 type Source = "DRAWER_CASH" | "CREDIT_CARD" | "FAMILY_SHOPEE";
@@ -60,6 +61,7 @@ export default function ExpensePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton />
       <header>
         <h1 className="text-2xl font-bold">บันทึกรายจ่าย</h1>
         <p className="text-ink/60">พิมพ์ยอดบิล เลือกหมวด แล้วเลือกแหล่งเงิน</p>

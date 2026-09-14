@@ -1,0 +1,711 @@
+diff --git a/frontend/app/checkout/page.tsx b/frontend/app/checkout/page.tsx
+new file mode 100644
+index 0000000..26e673b
+--- /dev/null
++++ b/frontend/app/checkout/page.tsx
+@@ -0,0 +1,17 @@
++"use client";
++
++import BackButton from "../../lib/ui/BackButton";
++
++// Placeholder — the Daily Checkout flow (numpad "นับเงินในลิ้นชัก" -> ตรวจสอบ
++// ยอดที่ควรมี vs นับได้ -> badge ตรงเป๊ะ/ขาด/เกิน) is built in the next pass.
++export default function CheckoutPage() {
++  return (
++    <div className="flex flex-col gap-6">
++      <BackButton />
++      <header>
++        <h1 className="text-2xl font-bold">ปิดยอดวันนี้</h1>
++        <p className="text-ink/60">หน้านี้กำลังพัฒนาต่อในเวอร์ชันถัดไป</p>
++      </header>
++    </div>
++  );
++}
+diff --git a/frontend/app/debts/page.tsx b/frontend/app/debts/page.tsx
+index a0c43a1..b8d1042 100644
+--- a/frontend/app/debts/page.tsx
++++ b/frontend/app/debts/page.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useEffect, useState } from "react";
+ import { api, Customer, CustomerDebt } from "../../lib/api";
++import BackButton from "../../lib/ui/BackButton";
+ 
+ export default function DebtsPage() {
+   const [debts, setDebts] = useState<CustomerDebt[]>([]);
+@@ -41,6 +42,7 @@ export default function DebtsPage() {
+ 
+   return (
+     <div className="flex flex-col gap-6">
++      <BackButton />
+       <header>
+         <h1 className="text-2xl font-bold">สมุดแปะโป้งออนไลน์</h1>
+         <p className="text-ink/60">ยอดค้างของลูกค้าแต่ละคน</p>
+diff --git a/frontend/app/expense/page.tsx b/frontend/app/expense/page.tsx
+index 0d13c63..dcc4a8d 100644
+--- a/frontend/app/expense/page.tsx
++++ b/frontend/app/expense/page.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useState } from "react";
+ import { api } from "../../lib/api";
++import BackButton from "../../lib/ui/BackButton";
+ 
+ type Category = "FRESH_MARKET" | "BEVERAGE" | "GROCERY_OTHER";
+ type Source = "DRAWER_CASH" | "CREDIT_CARD" | "FAMILY_SHOPEE";
+@@ -60,6 +61,7 @@ export default function ExpensePage() {
+ 
+   return (
+     <div className="flex flex-col gap-6">
++      <BackButton />
+       <header>
+         <h1 className="text-2xl font-bold">บันทึกรายจ่าย</h1>
+         <p className="text-ink/60">พิมพ์ยอดบิล เลือกหมวด แล้วเลือกแหล่งเงิน</p>
+diff --git a/frontend/app/history/page.tsx b/frontend/app/history/page.tsx
+index dc904fd..2b0f272 100644
+--- a/frontend/app/history/page.tsx
++++ b/frontend/app/history/page.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useEffect, useState } from "react";
+ import { api, Customer, DailySummary, INCOME_CATEGORIES, Transaction } from "../../lib/api";
++import BackButton from "../../lib/ui/BackButton";
+ 
+ const HOME_USE_LABELS: Record<string, string> = {
+   FOR_SALE: "ทำขาย",
+@@ -77,6 +78,7 @@ export default function HistoryPage() {
+ 
+   return (
+     <div className="flex flex-col gap-6">
++      <BackButton />
+       <header>
+         <h1 className="text-2xl font-bold">ประวัติ</h1>
+       </header>
+diff --git a/frontend/app/layout.tsx b/frontend/app/layout.tsx
+index ae34f4b..a4f580a 100644
+--- a/frontend/app/layout.tsx
++++ b/frontend/app/layout.tsx
+@@ -1,18 +1,18 @@
+ import type { Metadata } from "next";
+ import "./globals.css";
+-import BottomNav from "../lib/BottomNav";
+ 
+ export const metadata: Metadata = {
+   title: "บัญชีร้าน",
+   description: "ระบบจัดการกระแสเงินสดและสต๊อกกงสี",
+ };
+ 
++// No bottom nav on purpose: navigation is "hub and spoke" — Home is the only
++// hub, and every sub-page carries its own <BackButton /> back to it.
+ export default function RootLayout({ children }: { children: React.ReactNode }) {
+   return (
+     <html lang="th">
+-      <body className="min-h-screen pb-24">
+-        <main className="mx-auto max-w-md px-4 pt-6">{children}</main>
+-        <BottomNav />
++      <body className="min-h-screen pb-10">
++        <main className="mx-auto max-w-md px-4 py-6">{children}</main>
+       </body>
+     </html>
+   );
+diff --git a/frontend/app/page.tsx b/frontend/app/page.tsx
+index cd72193..8feda48 100644
+--- a/frontend/app/page.tsx
++++ b/frontend/app/page.tsx
+@@ -3,151 +3,116 @@
+ import Link from "next/link";
+ import { useEffect, useState } from "react";
+ import { api, HomeSummary } from "../lib/api";
++import BigButton from "../lib/ui/BigButton";
++
++const THAI_MONTHS = [
++  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
++  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
++];
++
++function formatThaiDate(d: Date) {
++  const day = d.getDate();
++  const month = THAI_MONTHS[d.getMonth()];
++  const buddhistYear = d.getFullYear() + 543;
++  return `วันที่ ${day} ${month} ${buddhistYear}`;
++}
++
++function greeting(d: Date) {
++  const hour = d.getHours();
++  if (hour < 11) return "สวัสดีตอนเช้าค่ะ";
++  if (hour < 16) return "สวัสดีตอนบ่ายค่ะ";
++  return "สวัสดีตอนเย็นค่ะ";
++}
++
++type LoadState = "loading" | "ready" | "error";
+ 
+ export default function HomePage() {
+   const [summary, setSummary] = useState<HomeSummary | null>(null);
+-  const [countInput, setCountInput] = useState("");
+-  const [saving, setSaving] = useState(false);
++  const [state, setState] = useState<LoadState>("loading");
+ 
+   useEffect(() => {
+     load();
+   }, []);
+ 
+   function load() {
+-    api.getHomeSummary(api.today()).then(setSummary).catch(() => setSummary(null));
++    setState("loading");
++    api
++      .getHomeSummary(api.today())
++      .then((s) => {
++        setSummary(s);
++        setState("ready");
++      })
++      .catch(() => setState("error"));
++  }
++
++  if (state === "loading") {
++    return (
++      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 text-center">
++        <span className="text-6xl">📒</span>
++        <p className="text-xl font-bold text-ink">กำลังกางสมุดบัญชี...</p>
++        <p className="text-lg text-ink/70">ป้ารอสัก 1 นาทีนะจ๊ะ</p>
++      </div>
++    );
+   }
+ 
+-  async function submitCount() {
+-    const value = Number(countInput);
+-    if (!value) return;
+-    setSaving(true);
+-    try {
+-      const updated = await api.recordDrawerCount(api.today(), value);
+-      setSummary(updated);
+-      setCountInput("");
+-    } finally {
+-      setSaving(false);
+-    }
++  if (state === "error") {
++    return (
++      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 rounded-2xl bg-red-50 p-6 text-center">
++        <span className="text-6xl">📡</span>
++        <p className="text-xl font-bold text-ink">เน็ตหลุดจ้า ยังไม่ได้จดรายการเมื่อกี้</p>
++        <BigButton variant="checkout" size="secondary" onClick={load} className="mt-2">
++          ลองบันทึกอีกครั้ง
++        </BigButton>
++      </div>
++    );
+   }
+ 
+-  const drawerIcon =
+-    summary?.drawer_status === "MATCH" ? "✅" : summary?.drawer_status === "MISMATCH" ? "⚠️" : "🕘";
+-  const drawerText =
+-    summary?.drawer_status === "MATCH"
+-      ? "เงินทอนตรง"
+-      : summary?.drawer_status === "MISMATCH"
+-      ? "เงินทอนไม่ตรง ลองนับใหม่อีกที"
+-      : "ยังไม่ได้นับเงินทอนวันนี้";
+-
+-  const budgetBarColor =
+-    summary?.market_status === "OVER"
+-      ? "bg-red-500"
+-      : summary?.market_status === "OK"
+-      ? "bg-market"
+-      : "bg-line";
+-
+-  const budgetPercent =
+-    summary?.market_daily_budget && Number(summary.market_daily_budget) > 0
+-      ? Math.min(100, (Number(summary.market_expense_today) / Number(summary.market_daily_budget)) * 100)
+-      : 0;
++  const now = new Date();
+ 
+   return (
+     <div className="flex flex-col gap-6">
+-      <header className="flex items-center justify-between">
+-        <div>
+-          <h1 className="text-2xl font-bold">ภาพรวมวันนี้</h1>
+-          <p className="text-ink/60">{summary?.date}</p>
+-        </div>
+-        <Link href="/settings" className="text-2xl" aria-label="ตั้งค่า">
+-          ⚙️
+-        </Link>
++      <header>
++        <h1 className="text-2xl font-bold">{greeting(now)}</h1>
++        <p className="text-ink/60">{formatThaiDate(now)}</p>
+       </header>
+ 
+-      {/* Drawer check */}
+-      <div className="rounded-2xl bg-white/70 p-5">
+-        <div className="flex items-center gap-3">
+-          <span className="text-4xl">{drawerIcon}</span>
+-          <div>
+-            <p className="text-lg font-bold">{drawerText}</p>
+-            {summary && (
+-              <p className="text-sm text-ink/60">
+-                ควรมี ฿{summary.expected_drawer_cash}
+-                {summary.actual_drawer_count ? ` · นับได้ ฿${summary.actual_drawer_count}` : ""}
+-              </p>
+-            )}
+-          </div>
+-        </div>
+-        <div className="mt-4 flex gap-2">
+-          <input
+-            inputMode="decimal"
+-            value={countInput}
+-            onChange={(e) => setCountInput(e.target.value)}
+-            placeholder="นับเงินทอนได้เท่าไหร่"
+-            className="h-14 flex-1 rounded-xl border border-line bg-white px-4 text-xl tabular-nums"
+-          />
+-          <button
+-            onClick={submitCount}
+-            disabled={!countInput || saving}
+-            className="h-14 rounded-xl bg-cash px-5 text-lg font-bold text-white disabled:opacity-40"
+-          >
+-            บันทึก
+-          </button>
+-        </div>
++      {/* Read-only sales card */}
++      <div className="rounded-2xl bg-white/70 p-6 text-center">
++        <p className="text-lg font-semibold text-ink/70">ยอดขายวันนี้</p>
++        <p className="tabular-nums text-5xl font-extrabold text-revenue">
++          ฿{summary?.cash_income_today ?? "0"}
++        </p>
++        <p className="mt-1 text-sm text-ink/50">นับเฉพาะเงินสด — ยอดรวมทั้งหมดดูได้ที่หน้าสรุป</p>
+       </div>
+ 
+-      {/* Market budget */}
+-      <div className="rounded-2xl bg-white/70 p-5">
+-        <p className="text-lg font-bold">งบซื้อของตลาดวันนี้</p>
+-        {summary?.market_status === "NO_BUDGET_SET" ? (
+-          <p className="mt-2 text-ink/60">
+-            ยังไม่ได้ตั้งงบ —{" "}
+-            <Link href="/settings" className="underline">
+-              ตั้งค่าที่นี่
+-            </Link>
+-          </p>
+-        ) : (
+-          <>
+-            <div className="mt-3 h-4 w-full overflow-hidden rounded-full bg-line">
+-              <div className={`h-full ${budgetBarColor}`} style={{ width: `${budgetPercent}%` }} />
+-            </div>
+-            <p className="mt-2 text-sm text-ink/60">
+-              ใช้ไป ฿{summary?.market_expense_today} จากงบ ฿{summary?.market_daily_budget}
+-            </p>
+-          </>
+-        )}
++      {/* 3 primary actions, stacked full-width */}
++      <div className="flex flex-col gap-3">
++        <BigButton href="/income" variant="revenue">
++          + รับเงิน
++        </BigButton>
++        <BigButton href="/expense" variant="expense">
++          - จ่ายเงิน
++        </BigButton>
++        <BigButton href="/debts" variant="debtAction">
++          ลูกค้าแปะโป้ง
++        </BigButton>
+       </div>
+ 
+-      {/* Month profit */}
+-      <div className="rounded-2xl bg-white/70 p-5 text-center">
+-        <p className="text-lg font-bold">กำไรเดือนนี้ (ถึงวันนี้)</p>
+-        <p className="tabular-nums text-4xl font-bold text-cash">฿{summary?.month_profit_so_far ?? "-"}</p>
+-      </div>
++      {/* Secondary action */}
++      <BigButton href="/checkout" variant="checkout" size="secondary">
++        ปิดยอดวันนี้
++      </BigButton>
+ 
+-      {/* Shortcuts */}
+-      <div className="grid grid-cols-3 gap-3">
+-        <Link
+-          href="/income"
+-          className="flex h-20 items-center justify-center rounded-xl bg-cash text-lg font-bold text-white"
+-        >
+-          รับเงิน
+-        </Link>
+-        <Link
+-          href="/expense"
+-          className="flex h-20 items-center justify-center rounded-xl bg-transfer text-lg font-bold text-white"
+-        >
+-          จ่ายเงิน
++      {/* Small corner text links */}
++      <div className="flex justify-center gap-4 text-ink/60">
++        <Link href="/summary" className="underline">
++          ดูสรุป
+         </Link>
+-        <Link
+-          href="/debts"
+-          className="flex h-20 items-center justify-center rounded-xl bg-debt text-lg font-bold text-white"
+-        >
+-          แปะโป้ง
++        <span>|</span>
++        <Link href="/settings" className="underline">
++          ตั้งค่า
+         </Link>
+       </div>
+-
+-      <Link href="/history" className="text-center text-ink/70 underline">
+-        ดูรายละเอียด / ประวัติย้อนหลัง
+-      </Link>
+     </div>
+   );
+ }
+diff --git a/frontend/app/settings/page.tsx b/frontend/app/settings/page.tsx
+index c99209e..afa49b0 100644
+--- a/frontend/app/settings/page.tsx
++++ b/frontend/app/settings/page.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { useEffect, useState } from "react";
+ import { api } from "../../lib/api";
++import BackButton from "../../lib/ui/BackButton";
+ 
+ export default function SettingsPage() {
+   const [drawerFloat, setDrawerFloat] = useState("");
+@@ -32,6 +33,7 @@ export default function SettingsPage() {
+ 
+   return (
+     <div className="flex flex-col gap-6">
++      <BackButton />
+       <header>
+         <h1 className="text-2xl font-bold">ตั้งค่าร้าน</h1>
+         <p className="text-ink/60">ตั้งครั้งเดียว ไม่ต้องแก้บ่อย</p>
+diff --git a/frontend/app/summary/page.tsx b/frontend/app/summary/page.tsx
+new file mode 100644
+index 0000000..1a5ffd5
+--- /dev/null
++++ b/frontend/app/summary/page.tsx
+@@ -0,0 +1,18 @@
++"use client";
++
++import BackButton from "../../lib/ui/BackButton";
++
++// Placeholder — the Analytics Dashboard (สถานะลิ้นชัก, งบตลาด, กำไรสะสม,
++// หนี้ Shopee, ประวัติรายวัน) is built in the next pass. It will likely fold
++// in what /history already shows today.
++export default function SummaryPage() {
++  return (
++    <div className="flex flex-col gap-6">
++      <BackButton />
++      <header>
++        <h1 className="text-2xl font-bold">สรุปข้อมูล</h1>
++        <p className="text-ink/60">หน้านี้กำลังพัฒนาต่อในเวอร์ชันถัดไป</p>
++      </header>
++    </div>
++  );
++}
+diff --git a/frontend/lib/BottomNav.tsx b/frontend/lib/BottomNav.tsx
+deleted file mode 100644
+index 022d8a5..0000000
+--- a/frontend/lib/BottomNav.tsx
++++ /dev/null
+@@ -1,37 +0,0 @@
+-"use client";
+-
+-import Link from "next/link";
+-import { usePathname } from "next/navigation";
+-
+-const tabs = [
+-  { href: "/", label: "หน้าหลัก" },
+-  { href: "/income", label: "รับเงิน" },
+-  { href: "/expense", label: "จ่ายเงิน" },
+-  { href: "/debts", label: "แปะโป้ง" },
+-  { href: "/history", label: "ประวัติ" },
+-];
+-
+-export default function BottomNav() {
+-  const pathname = usePathname();
+-
+-  return (
+-    <nav className="fixed bottom-0 left-0 right-0 border-t border-line bg-paper">
+-      <div className="mx-auto flex max-w-md">
+-        {tabs.map((tab) => {
+-          const active = pathname === tab.href;
+-          return (
+-            <Link
+-              key={tab.href}
+-              href={tab.href}
+-              className={`flex-1 py-3 text-center text-base font-semibold transition-colors ${
+-                active ? "text-ink border-t-4 border-cash -mt-[4px]" : "text-ink/50"
+-              }`}
+-            >
+-              {tab.label}
+-            </Link>
+-          );
+-        })}
+-      </div>
+-    </nav>
+-  );
+-}
+diff --git a/frontend/lib/ui/BackButton.tsx b/frontend/lib/ui/BackButton.tsx
+new file mode 100644
+index 0000000..32cf8cc
+--- /dev/null
++++ b/frontend/lib/ui/BackButton.tsx
+@@ -0,0 +1,20 @@
++"use client";
++
++import Link from "next/link";
++
++/**
++ * Every non-home screen must show this in the top-left corner — the app has
++ * no bottom nav, so this is the only way back. Big touch target on purpose.
++ */
++export default function BackButton() {
++  return (
++    <Link
++      href="/"
++      className="inline-flex h-14 items-center gap-2 rounded-xl bg-white/80 px-4 text-lg font-bold text-ink shadow-sm active:bg-line"
++      aria-label="กลับหน้าแรก"
++    >
++      <span className="text-2xl leading-none">←</span>
++      กลับหน้าแรก
++    </Link>
++  );
++}
+diff --git a/frontend/lib/ui/BigButton.tsx b/frontend/lib/ui/BigButton.tsx
+new file mode 100644
+index 0000000..51cdfdf
+--- /dev/null
++++ b/frontend/lib/ui/BigButton.tsx
+@@ -0,0 +1,99 @@
++"use client";
++
++import Link from "next/link";
++import type { ReactNode } from "react";
++
++/**
++ * Color variants used across the app. Keep this list in sync with the
++ * tokens in tailwind.config.ts.
++ *  - revenue / expense / debtAction / checkout: the 4 home-screen action buttons
++ *  - alcohol / market / grocery / shopee: item-category colors (เหล้า/ตลาด/ของชำ/Shopee)
++ *  - neutral: plain white card-style button (customer names, numpad-adjacent choices, ฯลฯ)
++ *  - danger: destructive actions
++ */
++export type ButtonVariant =
++  | "revenue"
++  | "expense"
++  | "debtAction"
++  | "checkout"
++  | "alcohol"
++  | "market"
++  | "grocery"
++  | "shopee"
++  | "neutral"
++  | "danger";
++
++/** primary = tall hero buttons on Home. secondary = normal-size action buttons on sub-pages. */
++export type ButtonSize = "primary" | "secondary";
++
++const VARIANT_CLASSES: Record<ButtonVariant, string> = {
++  revenue: "bg-revenue text-white active:opacity-90",
++  expense: "bg-expense text-white active:opacity-90",
++  debtAction: "bg-debtAction text-white active:opacity-90",
++  checkout: "bg-checkout text-white active:opacity-90",
++  alcohol: "bg-alcohol text-white active:opacity-90",
++  market: "bg-market text-white active:opacity-90",
++  grocery: "bg-grocery text-white active:opacity-90",
++  shopee: "bg-shopee text-white active:opacity-90",
++  neutral: "bg-white text-ink shadow-sm active:bg-line",
++  danger: "bg-red-600 text-white active:bg-red-700",
++};
++
++const SIZE_CLASSES: Record<ButtonSize, string> = {
++  primary: "h-20 rounded-2xl text-2xl font-bold w-full",
++  secondary: "h-16 rounded-xl text-xl font-bold w-full",
++};
++
++type SharedProps = {
++  children: ReactNode;
++  variant?: ButtonVariant;
++  size?: ButtonSize;
++  disabled?: boolean;
++  className?: string;
++  ariaLabel?: string;
++};
++
++type AsButton = SharedProps & {
++  href?: undefined;
++  onClick?: () => void;
++  type?: "button" | "submit";
++};
++
++type AsLink = SharedProps & {
++  href: string;
++  onClick?: undefined;
++};
++
++export default function BigButton(props: AsButton | AsLink) {
++  const {
++    children,
++    variant = "neutral",
++    size = "primary",
++    disabled = false,
++    className = "",
++    ariaLabel,
++  } = props;
++
++  const classes = `${SIZE_CLASSES[size]} ${VARIANT_CLASSES[variant]} disabled:opacity-40 transition-opacity ${className}`;
++
++  if ("href" in props && props.href) {
++    return (
++      <Link href={props.href} className={`flex items-center justify-center ${classes}`} aria-label={ariaLabel}>
++        {children}
++      </Link>
++    );
++  }
++
++  const buttonProps = props as AsButton;
++  return (
++    <button
++      type={buttonProps.type ?? "button"}
++      onClick={buttonProps.onClick}
++      disabled={disabled}
++      aria-label={ariaLabel}
++      className={classes}
++    >
++      {children}
++    </button>
++  );
++}
+diff --git a/frontend/lib/ui/CustomNumpad.tsx b/frontend/lib/ui/CustomNumpad.tsx
+new file mode 100644
+index 0000000..e645dac
+--- /dev/null
++++ b/frontend/lib/ui/CustomNumpad.tsx
+@@ -0,0 +1,57 @@
++"use client";
++
++const KEYS = ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", ".", "⌫"];
++
++type CustomNumpadProps = {
++  /** current amount as a plain string, e.g. "120.5" */
++  value: string;
++  onChange: (next: string) => void;
++  /** max count of digits (not counting the decimal point), default 7 */
++  maxDigits?: number;
++  disabled?: boolean;
++};
++
++/**
++ * On-screen numpad so the app never has to open the device's native
++ * keyboard for numbers ("Touch, Don't Type" rule).
++ */
++export default function CustomNumpad({ value, onChange, maxDigits = 7, disabled = false }: CustomNumpadProps) {
++  function pressDigit(d: string) {
++    if (disabled) return;
++    if (d === "." && value.includes(".")) return;
++    if (value.replace(".", "").length >= maxDigits) return;
++    onChange(value + d);
++  }
++
++  function backspace() {
++    if (disabled) return;
++    onChange(value.slice(0, -1));
++  }
++
++  return (
++    <div className="grid grid-cols-3 gap-3">
++      {KEYS.map((key) => (
++        <button
++          key={key}
++          type="button"
++          disabled={disabled}
++          onClick={() => (key === "⌫" ? backspace() : pressDigit(key))}
++          className="h-16 rounded-xl bg-white text-2xl font-semibold text-ink shadow-sm active:bg-line disabled:opacity-40"
++          aria-label={key === "⌫" ? "ลบตัวเลขล่าสุด" : `ตัวเลข ${key}`}
++        >
++          {key}
++        </button>
++      ))}
++    </div>
++  );
++}
++
++/** Big read-only ฿ display that sits above a CustomNumpad. */
++export function AmountDisplay({ value, label }: { value: string; label?: string }) {
++  return (
++    <div className="rounded-2xl bg-white/60 py-6 text-center">
++      {label && <p className="text-ink/60">{label}</p>}
++      <span className="tabular-nums text-5xl font-bold">฿{value || "0"}</span>
++    </div>
++  );
++}
+diff --git a/frontend/lib/ui/useUndoToast.tsx b/frontend/lib/ui/useUndoToast.tsx
+new file mode 100644
+index 0000000..87518f3
+--- /dev/null
++++ b/frontend/lib/ui/useUndoToast.tsx
+@@ -0,0 +1,50 @@
++"use client";
++
++import { useCallback, useRef, useState } from "react";
++
++type PendingUndo = { message: string; onUndo: () => void } | null;
++
++/**
++ * Replaces "are you sure?" confirmation popups. Call showUndo() right after
++ * doing the (already-completed) destructive action, and the caller's
++ * onUndo() reverses it if the person taps "เลิกทำ" within 5 seconds.
++ */
++export function useUndoToast(durationMs = 5000) {
++  const [pending, setPending] = useState<PendingUndo>(null);
++  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
++
++  const dismiss = useCallback(() => {
++    if (timerRef.current) clearTimeout(timerRef.current);
++    setPending(null);
++  }, []);
++
++  const showUndo = useCallback(
++    (message: string, onUndo: () => void) => {
++      if (timerRef.current) clearTimeout(timerRef.current);
++      setPending({ message, onUndo });
++      timerRef.current = setTimeout(() => setPending(null), durationMs);
++    },
++    [durationMs]
++  );
++
++  const toastElement = pending ? (
++    <div
++      role="status"
++      className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full bg-ink px-5 py-3 text-white shadow-lg"
++    >
++      <span className="text-base">{pending.message}</span>
++      <button
++        type="button"
++        onClick={() => {
++          pending.onUndo();
++          dismiss();
++        }}
++        className="text-base font-bold underline underline-offset-2"
++      >
++        เลิกทำ
++      </button>
++    </div>
++  ) : null;
++
++  return { toastElement, showUndo, dismiss };
++}
+diff --git a/frontend/tailwind.config.ts b/frontend/tailwind.config.ts
+index c00e672..f07399e 100644
+--- a/frontend/tailwind.config.ts
++++ b/frontend/tailwind.config.ts
+@@ -11,10 +11,17 @@ const config: Config = {
+         transfer: "#2C4770",
+         debt: "#D9A441",
+         homeuse: "#B8543D",
+-        alcohol: "#6B2545",
++        // item categories — per spec: เหล้า=brown, ตลาด=green, ของชำ=light blue, Shopee=purple
++        alcohol: "#7A5230",
+         market: "#3D7A5C",
+-        grocery: "#6B5B95",
++        grocery: "#3E8FC4",
++        shopee: "#7C5FA8",
+         line: "#E0D6C2",
++        // home-screen action buttons (distinct from the category colors above)
++        revenue: "#3DAA5C",
++        expense: "#E0577A",
++        debtAction: "#F2994A",
++        checkout: "#3E7CB1",
+       },
+       fontFamily: {
+         thai: ["'IBM Plex Sans Thai'", "sans-serif"],

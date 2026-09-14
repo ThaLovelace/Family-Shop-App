@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, Customer, DailySummary, INCOME_CATEGORIES, Transaction } from "../../lib/api";
+import BackButton from "../../lib/ui/BackButton";
 
 const HOME_USE_LABELS: Record<string, string> = {
   FOR_SALE: "ทำขาย",
@@ -77,6 +78,7 @@ export default function HistoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton />
       <header>
         <h1 className="text-2xl font-bold">ประวัติ</h1>
       </header>

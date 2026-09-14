@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
+import BackButton from "../../lib/ui/BackButton";
 
 export default function SettingsPage() {
   const [drawerFloat, setDrawerFloat] = useState("");
@@ -32,6 +33,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton />
       <header>
         <h1 className="text-2xl font-bold">ตั้งค่าร้าน</h1>
         <p className="text-ink/60">ตั้งครั้งเดียว ไม่ต้องแก้บ่อย</p>

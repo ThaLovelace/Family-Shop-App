@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, Customer, CustomerDebt } from "../../lib/api";
+import BackButton from "../../lib/ui/BackButton";
 
 export default function DebtsPage() {
   const [debts, setDebts] = useState<CustomerDebt[]>([]);
@@ -41,6 +42,7 @@ export default function DebtsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <BackButton />
       <header>
         <h1 className="text-2xl font-bold">สมุดแปะโป้งออนไลน์</h1>
         <p className="text-ink/60">ยอดค้างของลูกค้าแต่ละคน</p>
